@@ -37,6 +37,11 @@ namespace CorporateNewsPortal.Models
             get;
             set;
         } = false;
+        public string Role
+        {
+            get;
+            set;
+        } = "employee";
 
 
     }

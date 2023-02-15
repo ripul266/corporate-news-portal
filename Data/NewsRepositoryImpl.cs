@@ -13,16 +13,62 @@ namespace CorporateNewsPortal.Data
     {
         SqlConnection conn = null;
         public DbHandler dbHandler = new DbHandler();
-        List<EmployeeNews> newsList = new List<EmployeeNews>
+        List<News> newsList = new List<News>
         {
-            new EmployeeNews{NewsId=1,Title="News1",Description="this is description1"},
-            new EmployeeNews{NewsId=2,Title="News2",Description="this is description2"},
-            new EmployeeNews{NewsId=3,Title="News3",Description="this is description3"},
-            new EmployeeNews{NewsId=4,Title="News4",Description="this is description4"},
-            new EmployeeNews{NewsId=5,Title="News5",Description="this is description5"},
+            new News{NewsId=1,Title="News1",Description="this is description1"},
+            new News{NewsId=2,Title="News2",Description="this is description2"},
+            new News{NewsId=3,Title="News3",Description="this is description3"},
+            new News{NewsId=4,Title="News4",Description="this is description4"},
+            new News{NewsId=5,Title="News5",Description="this is description5"},
 
         };
-        public Task<bool> CreateNews(EmployeeNews eNews)
+        public Task<bool> ApproveNews(News edt)
+        {
+            int result = 0;
+            string query = "update News set approval=@approval where newsId=@id";
+            try
+            {
+                conn = dbHandler.OpenConnection();
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", edt.NewsId);
+                cmd.Parameters.AddWithValue("@approval", "true");
+                result = cmd.ExecuteNonQuery();
+                if (result > 0)
+                {
+                    Console.WriteLine("Data Updated ");
+                    return Task.Run(() => true);
+                }
+                else
+                {
+                    Console.WriteLine("Updation Failed");
+                }
+
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine("Error While Updating  record ...." + ex.Message);
+            }
+            finally
+            {
+                dbHandler.CloseConnection();
+            }
+
+
+            return Task.Run(() => {
+                if (edt.Approval)
+                {
+                    // Already Approved
+                    return false;
+                }
+                else
+                {
+                    // Approval Done
+                    edt.Approval = true;
+                    return true;
+                }
+            });
+        }
+        public Task<bool> CreateNews(News eNews)
         {
             return Task.Run(() => {
                 if (eNews != null)
@@ -33,7 +79,47 @@ namespace CorporateNewsPortal.Data
                         // 3.Create the command object and pass the query
                         // IN c# query is string but with ADO.net it is responsibilty of ADO to execute the query
                         // productName in varchar so in single commas ''
-                        string query = $"insert into News values({eNews.NewsId},'{eNews.Title}','{eNews.Description}','false')";
+                        string query = $"insert into News values({eNews.NewsId},'{eNews.Title}','{eNews.Description}','false','{eNews.Date}')";
+                        SqlCommand command = new SqlCommand(query, conn);
+                        //4. Execute the Query
+                        // if query is **insert,select,update** we use "Execute Non Query"
+                        // res returns the number of rows modified
+                        int res = command.ExecuteNonQuery();
+                        //5.Check if it is successful
+                        // Dont write WriteLine statements in execution
+                        if (res > 0) Console.WriteLine("Record Inserted Succesfully");
+                        else Console.WriteLine("Insertion Failed");
+                    }
+                    catch (SqlException ex)
+                    {
+                        Console.WriteLine("Error While Inserting a record ...." + ex.Message);
+                    }
+                    finally
+                    {
+                        dbHandler.CloseConnection();
+                    }
+                    newsList.Add(eNews);
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            });
+        }
+  
+        public Task<bool> CreateNewsAdmin(News eNews)
+        {
+            return Task.Run(() => {
+                if (eNews != null)
+                {
+                    try
+                    {
+                        conn = dbHandler.OpenConnection();
+                        // 3.Create the command object and pass the query
+                        // IN c# query is string but with ADO.net it is responsibilty of ADO to execute the query
+                        // productName in varchar so in single commas ''
+                        string query = $"insert into News values({eNews.NewsId},'{eNews.Title}','{eNews.Description}','true','{eNews.Date}')";
                         SqlCommand command = new SqlCommand(query, conn);
                         //4. Execute the Query
                         // if query is **insert,select,update** we use "Execute Non Query"
@@ -62,7 +148,7 @@ namespace CorporateNewsPortal.Data
             });
         }
 
-        public Task<bool> DeleteNews(EmployeeNews eNews)
+        public Task<bool> DeleteNews(News eNews)
         {
             try
             {
@@ -91,10 +177,10 @@ namespace CorporateNewsPortal.Data
 
        
 
-        public Task<EmployeeNews> FindEmployeeNewsById(int NewsId)
+        public Task<News> FindEmployeeNewsById(int NewsId)
         {
 
-            EmployeeNews pdt = null;
+            News pdt = null;
             try
             {
 
@@ -113,13 +199,14 @@ namespace CorporateNewsPortal.Data
                     if (reader.HasRows)
                     {
                         //reader.Read() return bool if it can read return true enter while 
-                        pdt = new EmployeeNews();
+                        pdt = new News();
                         while (reader.Read())
                         {
                             pdt.NewsId = (int)reader["newsId"];
                             pdt.Title = (string)(reader["title"]);
                             pdt.Description = (string)(reader["description"]);
                             pdt.Approval = Convert.ToBoolean(reader["approval"]);
+                            pdt.Date = Convert.ToDateTime(reader["date"]);
                         }
 
                         reader.Close();
@@ -143,22 +230,23 @@ namespace CorporateNewsPortal.Data
             return Task.Run(() => newsList.SingleOrDefault(x => x.NewsId == NewsId));
         }
 
-        public Task<IEnumerable<EmployeeNews>> GetAllNews()
+        public Task<IEnumerable<News>> GetAllNews()
         {
-            List<EmployeeNews> employeeNewsList = new List<EmployeeNews>();
+            List<News> employeeNewsList = new List<News>();
 
             try
             {
 
                 conn = dbHandler.OpenConnection();
                 // for parameter we use '@'
-                string query = "select * from News ";
+                string query = "select * from News";
                 using (conn)
                 {
                     SqlCommand cmd = new SqlCommand(query, conn);
                     // One method to attach the parameter to the query
                     // SqlParameter p1= new SqlParameter()
                     //Other method
+                  
                     cmd.CommandType = CommandType.Text;
 
                     SqlDataReader reader = cmd.ExecuteReader();
@@ -168,7 +256,7 @@ namespace CorporateNewsPortal.Data
 
                         while (reader.Read())
                         {
-                            EmployeeNews pdt = new EmployeeNews();
+                            News pdt = new News();
                             pdt.NewsId = (int)reader["newsId"];
                             pdt.Title = (string)(reader["title"]);
                             pdt.Description = (string)(reader["description"]);
@@ -191,7 +279,110 @@ namespace CorporateNewsPortal.Data
             {
                 Console.WriteLine("Error While Finding record ...." + ex.Message);
             }
-            return Task.FromResult<IEnumerable<EmployeeNews>>(employeeNewsList);
+            return Task.FromResult<IEnumerable<News>>(employeeNewsList);
+        }
+        public Task<IEnumerable<News>> GetApprovedNews()
+        {
+            List<News> employeeNewsList = new List<News>();
+
+            try
+            {
+
+                conn = dbHandler.OpenConnection();
+                // for parameter we use '@'
+                string query = "select * from News where approval=@approval";
+                using (conn)
+                {
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    // One method to attach the parameter to the query
+                    // SqlParameter p1= new SqlParameter()
+                    //Other method
+                    cmd.Parameters.AddWithValue("@approval", "true");
+                    cmd.CommandType = CommandType.Text;
+
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    if (reader.HasRows)
+                    {
+                        //reader.Read() return bool if it can read return true enter while 
+
+                        while (reader.Read())
+                        {
+                            News pdt = new News();
+                            pdt.NewsId = (int)reader["newsId"];
+                            pdt.Title = (string)(reader["title"]);
+                            pdt.Description = (string)(reader["description"]);
+                            pdt.Approval = Convert.ToBoolean(reader["approval"]);
+                            employeeNewsList.Add(pdt);
+                        }
+
+                        reader.Close();
+                        /* return Task.FromResult<IEnumerable<Employee>>(employeeList);
+ */
+
+                    }
+
+
+                }
+                //Execute the select query
+
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine("Error While Finding record ...." + ex.Message);
+            }
+            return Task.FromResult<IEnumerable<News>>(employeeNewsList);
+        }
+        public Task<IEnumerable<News>> GetNotApprovedNews()
+        {
+            List<News> employeeNewsList = new List<News>();
+
+            try
+            {
+
+                conn = dbHandler.OpenConnection();
+                // for parameter we use '@'
+                string query = "select * from News where approval=@approval";
+                using (conn)
+                {
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    // One method to attach the parameter to the query
+                    // SqlParameter p1= new SqlParameter()
+                    //Other method
+                    cmd.Parameters.AddWithValue("@approval", "false");
+                    cmd.CommandType = CommandType.Text;
+
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    if (reader.HasRows)
+                    {
+                        //reader.Read() return bool if it can read return true enter while 
+
+                        while (reader.Read())
+                        {
+                            News pdt = new News();
+                            pdt.NewsId = (int)reader["newsId"];
+                            pdt.Title = (string)(reader["title"]);
+                            pdt.Description = (string)(reader["description"]);
+                            pdt.Approval = Convert.ToBoolean(reader["approval"]);
+                            employeeNewsList.Add(pdt);
+                        }
+
+                        reader.Close();
+                        /* return Task.FromResult<IEnumerable<Employee>>(employeeList);
+ */
+
+                    }
+
+
+                }
+                //Execute the select query
+
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine("Error While Finding record ...." + ex.Message);
+            }
+            return Task.FromResult<IEnumerable<News>>(employeeNewsList);
         }
     }
 }
+

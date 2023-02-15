@@ -20,7 +20,11 @@ namespace CorporateNewsPortal.Dtos
             get;
             set;
         }
-     
+        public DateTime Date
+        {
+            get; set;
+        }
+
 
     }
 }

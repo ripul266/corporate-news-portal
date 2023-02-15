@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace CorporateNewsPortal.Models
 {
-    public class EmployeeNews
+    public class News
     {
         public int NewsId
         {
@@ -24,6 +24,10 @@ namespace CorporateNewsPortal.Models
         {
             get; set;
         } = false;
+        public DateTime Date
+        {
+            get;set;
+        }
 
     }
 }

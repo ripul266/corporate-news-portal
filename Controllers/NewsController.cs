@@ -25,9 +25,31 @@ namespace CorporateNewsPortal.Controllers
         }
         [HttpGet]
 
-        public async Task<ActionResult<IEnumerable<EmployeeNews>>> GetAll()
+        public async Task<ActionResult<IEnumerable<News>>> GetAll()
         {
             var employeeList = await repo.GetAllNews();
+            if (employeeList == null)
+            {
+                return NotFound();
+            }
+            return Ok(_mapper.Map<IEnumerable<EmployeeReadNewsDto>>(employeeList));
+        }
+        [HttpGet]
+        [Route("ApprovedNews")]
+        public async Task<ActionResult<IEnumerable<News>>> GetApprovedNews()
+        {
+            var employeeList = await repo.GetApprovedNews();
+            if (employeeList == null)
+            {
+                return NotFound();
+            }
+            return Ok(_mapper.Map<IEnumerable<EmployeeReadNewsDto>>(employeeList));
+        }
+        [HttpGet]
+        [Route("NotApprovedNews")]
+        public async Task<ActionResult<IEnumerable<News>>> GetNotApprovedNews()
+        {
+            var employeeList = await repo.GetNotApprovedNews();
             if (employeeList == null)
             {
                 return NotFound();
@@ -39,17 +61,31 @@ namespace CorporateNewsPortal.Controllers
         public async Task<ActionResult<EmployeeReadDto>> GetNewsById(int id)
         {
 
-            EmployeeNews p = await repo.FindEmployeeNewsById(id);
+            News p = await repo.FindEmployeeNewsById(id);
             if (p != null)
                 return Ok(_mapper.Map<EmployeeReadNewsDto>(p));
             else
                 return NotFound("Id Not Found");
         }
         [HttpPost]
-        public async Task<ActionResult<bool>> CreateEmployee([FromBody] EmployeeCreateNewsDto emp)
+        [Route("EmployeeNews")]
+        public async Task<ActionResult<bool>> CreateEmployeeNews([FromBody] EmployeeCreateNewsDto emp)
         {
-            EmployeeNews modelEmpNews = _mapper.Map<EmployeeNews>(emp);
+            News modelEmpNews = _mapper.Map<News>(emp);
             var result = await repo.CreateNews(modelEmpNews);
+            if (!result)
+            {
+                return BadRequest("The Object Not Created");
+            }
+            var edtReadDto = _mapper.Map<EmployeeReadNewsDto>(modelEmpNews);
+            return CreatedAtRoute(new { productId = edtReadDto.NewsId }, edtReadDto);
+        }
+        [HttpPost]
+        [Route("AdminNews")]
+        public async Task<ActionResult<bool>> CreateAdminNews([FromBody] EmployeeCreateNewsDto emp)
+        {
+            News modelEmpNews = _mapper.Map<News>(emp);
+            var result = await repo.CreateNewsAdmin(modelEmpNews);
             if (!result)
             {
                 return BadRequest("The Object Not Created");
@@ -76,6 +112,32 @@ namespace CorporateNewsPortal.Controllers
             }
 
         }
+        [HttpPut()]
+        [Route("ApproveNews")]
+        public async Task<ActionResult<bool>> ApproveEmployeeNews(int id)
+        {
+            var pdtFound = await repo.FindEmployeeNewsById(id);
+            if (pdtFound == null)
+            {
+                return NotFound($"id {id} not found");
+            }
+
+
+            var result = await repo.ApproveNews(pdtFound);
+            if (result)
+            {
+                return NoContent();
+            }
+            else
+            {
+                return BadRequest();
+            }
+
+
+        }
+
+
+
     }
 }
 

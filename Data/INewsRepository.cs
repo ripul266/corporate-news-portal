@@ -8,10 +8,17 @@ namespace CorporateNewsPortal.Data
 {
     public interface INewsRepository
     {
-        Task<IEnumerable<EmployeeNews>> GetAllNews();
-        Task<EmployeeNews> FindEmployeeNewsById(int NewsId);
-        Task<bool> CreateNews(EmployeeNews eNews);
-        Task<bool> DeleteNews(EmployeeNews eNews);
+        Task<IEnumerable<News>> GetAllNews();
+        Task<News> FindEmployeeNewsById(int NewsId);
+        Task<bool> CreateNews(News eNews);
+        Task<bool> CreateNewsAdmin(News eNews);
+        Task<bool> DeleteNews(News eNews);
+        Task<IEnumerable<News>> GetNotApprovedNews();
+        Task<IEnumerable<News>> GetApprovedNews();
+        Task<bool> ApproveNews(News edt);
+
+      
+        
 
     }
 }

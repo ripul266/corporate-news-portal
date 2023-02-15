@@ -7,12 +7,12 @@ using CorporateNewsPortal.Dtos;
 using CorporateNewsPortal.Models;
 namespace CorporateNewsPortal.Profiles
 {
-    public class News:Profile
+    public class NewsProfile:Profile
     {
-        public News()
+        public NewsProfile()
         {
-            CreateMap<EmployeeNews, EmployeeReadNewsDto>();
-            CreateMap<EmployeeCreateNewsDto, EmployeeNews>();
+            CreateMap<News, EmployeeReadNewsDto>();
+            CreateMap<EmployeeCreateNewsDto, News>();
         }
         }
 }

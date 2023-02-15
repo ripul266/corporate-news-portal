@@ -39,6 +39,36 @@ namespace CorporateNewsPortal.Data
 
         public Task<bool> ApproveEmployee(Employee edt)
         {
+            int result = 0;
+            string query = "update Employee set approval=@approval where employeeId=@id";
+            try
+            {
+                conn = dbHandler.OpenConnection();
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", edt.EmployeeId);
+                cmd.Parameters.AddWithValue("@approval", "true");
+                result = cmd.ExecuteNonQuery();
+                if (result > 0)
+                {
+                    Console.WriteLine("Data Updated ");
+                    return Task.Run(() => true);
+                }
+                else
+                {
+                    Console.WriteLine("Updation Failed");
+                }
+
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine("Error While Updating  record ...." + ex.Message);
+            }
+            finally
+            {
+                dbHandler.CloseConnection();
+            }
+
+
             return Task.Run(() => {
                 if (edt.Approval )
                 {
@@ -66,7 +96,7 @@ namespace CorporateNewsPortal.Data
                         // 3.Create the command object and pass the query
                         // IN c# query is string but with ADO.net it is responsibilty of ADO to execute the query
                         // productName in varchar so in single commas ''
-                        string query = $"insert into Employee values({edt.EmployeeId},'{edt.EmployeeName}','{edt.PhoneNumber}','{edt.Gender}','{edt.Email}','{edt.Password}','false')";
+                        string query = $"insert into Employee values({edt.EmployeeId},'{edt.EmployeeName}','{edt.PhoneNumber}','{edt.Gender}','{edt.Email}','{edt.Password}','false','employee')";
                         SqlCommand command = new SqlCommand(query, conn);
                         //4. Execute the Query
                         // if query is **insert,select,update** we use "Execute Non Query"
@@ -95,15 +125,58 @@ namespace CorporateNewsPortal.Data
             });
         }
 
+        public Task<bool> CreateAdmin(Employee edt)
+        {
+            return Task.Run(() => {
+
+                if (edt != null)
+                {
+                    try
+                    {
+                        conn = dbHandler.OpenConnection();
+                        // 3.Create the command object and pass the query
+                        // IN c# query is string but with ADO.net it is responsibilty of ADO to execute the query
+                        // productName in varchar so in single commas ''
+                        string query = $"insert into Employee values({edt.EmployeeId},'{edt.EmployeeName}','{edt.PhoneNumber}','{edt.Gender}','{edt.Email}','{edt.Password}','true','admin')";
+                        SqlCommand command = new SqlCommand(query, conn);
+                        //4. Execute the Query
+                        // if query is **insert,select,update** we use "Execute Non Query"
+                        // res returns the number of rows modified
+                        int res = command.ExecuteNonQuery();
+                        //5.Check if it is successful
+                        // Dont write WriteLine statements in execution
+                        if (res > 0) Console.WriteLine("Record Inserted Succesfully");
+                        else Console.WriteLine("Insertion Failed");
+                    }
+                    catch (SqlException ex)
+                    {
+                        Console.WriteLine("Error While Inserting a record ...." + ex.Message);
+                    }
+                    finally
+                    {
+                        dbHandler.CloseConnection();
+                    }
+                    employeeList.Add(edt);
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            });
+        }
+
+
         public Task<bool> DeleteEmployee(Employee edt)
         {
             try
             {
                 int id = edt.EmployeeId;
                 conn = dbHandler.OpenConnection();
-                string query = "delete from Employee where employeeId=@id";
+                string query = "delete from Employee where employeeId=@id and Role!=@role";
                 SqlCommand cmd = new SqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", id);
+                cmd.Parameters.AddWithValue("@role", "admin");
                 int result = cmd.ExecuteNonQuery();
                 if (result > 0)
                     return Task.Run(()=>true);
@@ -278,10 +351,117 @@ namespace CorporateNewsPortal.Data
             return Task.FromResult<IEnumerable<Employee>>(employeeList);
         }
 
+        public Task<IEnumerable<Employee>> GetAllNotApprovedEmployees()
+        {
+            List<Employee> employeeList = new List<Employee>();
+
+            try
+            {
+
+                conn = dbHandler.OpenConnection();
+                // for parameter we use '@'
+                string query = "select * from Employee where approval=@approval ";
+                using (conn)
+                {
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    // One method to attach the parameter to the query
+                    // SqlParameter p1= new SqlParameter()
+                    //Other method
+                    cmd.Parameters.AddWithValue("@approval", "false");
+                    cmd.CommandType = CommandType.Text;
+
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    if (reader.HasRows)
+                    {
+                        //reader.Read() return bool if it can read return true enter while 
+
+                        while (reader.Read())
+                        {
+                            Employee pdt = new Employee();
+                            pdt.EmployeeId = (int)reader["employeeId"];
+                            pdt.EmployeeName = (string)(reader["employeeName"]);
+                            pdt.PhoneNumber = (string)(reader["phoneNumber"]);
+                            pdt.Gender = (string)(reader["gender"]);
+                            pdt.Email = (string)(reader["email"]);
+                            pdt.Approval = Convert.ToBoolean(reader["approval"]);
+                            employeeList.Add(pdt);
+                        }
+
+                        reader.Close();
+                        /* return Task.FromResult<IEnumerable<Employee>>(employeeList);
+ */
+
+                    }
+
+
+                }
+                //Execute the select query
+
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine("Error While Finding record ...." + ex.Message);
+            }
+            return Task.FromResult<IEnumerable<Employee>>(employeeList);
+        }
+        public Task<IEnumerable<Employee>> GetAllApprovedEmployees()
+        {
+            List<Employee> employeeList = new List<Employee>();
+
+            try
+            {
+
+                conn = dbHandler.OpenConnection();
+                // for parameter we use '@'
+                string query = "select * from Employee where approval=@approval ";
+                using (conn)
+                {
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    // One method to attach the parameter to the query
+                    // SqlParameter p1= new SqlParameter()
+                    //Other method
+                    cmd.Parameters.AddWithValue("@approval", "true");
+                    cmd.CommandType = CommandType.Text;
+
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    if (reader.HasRows)
+                    {
+                        //reader.Read() return bool if it can read return true enter while 
+
+                        while (reader.Read())
+                        {
+                            Employee pdt = new Employee();
+                            pdt.EmployeeId = (int)reader["employeeId"];
+                            pdt.EmployeeName = (string)(reader["employeeName"]);
+                            pdt.PhoneNumber = (string)(reader["phoneNumber"]);
+                            pdt.Gender = (string)(reader["gender"]);
+                            pdt.Email = (string)(reader["email"]);
+                            pdt.Approval = Convert.ToBoolean(reader["approval"]);
+                            employeeList.Add(pdt);
+                        }
+
+                        reader.Close();
+                        /* return Task.FromResult<IEnumerable<Employee>>(employeeList);
+ */
+
+                    }
+
+
+                }
+                //Execute the select query
+
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine("Error While Finding record ...." + ex.Message);
+            }
+            return Task.FromResult<IEnumerable<Employee>>(employeeList);
+        }
+
         public Task<bool> UpdateEmployee(Employee edt)
         {
             int result = 0;
-            string query = "update Employee set phoneNumber=@phoneNumber,gender=@gender,password=@password where employeeId=@id";
+            string query = "update Employee set phoneNumber=@phoneNumber,gender=@gender,password=@password where employeeId=@id and approval=@approval";
             try
             {
                 conn = dbHandler.OpenConnection();
@@ -289,6 +469,7 @@ namespace CorporateNewsPortal.Data
                 cmd.Parameters.AddWithValue("@id", edt.EmployeeId);
                 cmd.Parameters.AddWithValue("@phoneNumber", edt.PhoneNumber);
                 cmd.Parameters.AddWithValue("@gender", edt.Gender);
+                cmd.Parameters.AddWithValue("@approval", true);
                 cmd.Parameters.AddWithValue("@password", edt.Password);
                 result = cmd.ExecuteNonQuery();
                 if (result > 0)

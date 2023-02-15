@@ -23,6 +23,10 @@ namespace CorporateNewsPortal.Dtos
         public bool Approval
         {
             get; set;
-        } 
+        }
+        public DateTime Date
+        {
+            get; set;
+        }
     }
 }
